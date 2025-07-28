@@ -1,0 +1,50 @@
+#!/bin/sh
+COMPOSER_CONTAINER=composer
+LOCAL_RTMP_CONTAINER=rtmp-local
+CLEAN=false
+BUILD=false
+RUN=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --clean)
+            CLEAN=true
+            ;;
+        --build)
+            CLEAN=true
+            BUILD=true
+            ;;
+        --run)
+            CLEAN=true
+            BUILD=true
+            RUN=true
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            print_help
+            exit 1
+            ;;
+    esac
+done
+
+if $CLEAN; then
+    docker kill $COMPOSER_CONTAINER $LOCAL_RTMP_CONTAINER
+    docker rm $COMPOSER_CONTAINER $LOCAL_RTMP_CONTAINER
+fi
+
+if $BUILD; then
+    docker build -t $COMPOSER_CONTAINER .
+fi
+
+if $RUN; then
+    docker run -d --name $LOCAL_RTMP_CONTAINER --network host tiangolo/nginx-rtmp
+    docker run \
+     --cpus="8" \
+      --env-file .env \
+      --network host \
+      --dns=8.8.8.8 \
+      --dns=8.8.4.4 \
+      --rm \
+      --name $COMPOSER_CONTAINER \
+      $COMPOSER_CONTAINER
+fi
