@@ -51,7 +51,6 @@ google-chrome \
 
 echo "Starting stream ($RTMP_URL)"
 # Stream from remote video file to check A/V Drift
-
 # ffmpeg \
 #   -loglevel $FFMPEG_LOGLEVEL \
 #   -re -i $WEBPAGE_URL \
@@ -63,8 +62,9 @@ echo "Starting stream ($RTMP_URL)"
 # Stream from x11 to check A/V Drift
 ffmpeg \
   -loglevel $FFMPEG_LOGLEVEL \
-  -thread_queue_size 512 -f x11grab -r 30 -s $RESOLUTION -i "$DISPLAY.0" \
-  -thread_queue_size 512 -f pulse -ac 2 -ar 48000 -i default \
+  -use_wallclock_as_timestamps 1 \
+  -thread_queue_size 1024 -f pulse -ac 2 -ar 48000 -i default \
+  -thread_queue_size 1024 -f x11grab -r 30 -s $RESOLUTION -i "$DISPLAY.0" \
   -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k -g 60 -r 30 \
   -pix_fmt yuv420p \
   -c:a aac -b:a 128k -ar 48000 \

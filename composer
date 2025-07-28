@@ -39,7 +39,6 @@ fi
 if $RUN; then
     docker run -d --name $LOCAL_RTMP_CONTAINER --network host tiangolo/nginx-rtmp
     docker run \
-     --cpus="8" \
       --env-file .env \
       --network host \
       --dns=8.8.8.8 \
