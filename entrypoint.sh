@@ -1,4 +1,5 @@
 export DISPLAY=:99
+PULSE_SINK=virtual_sink
 
 echo -e "Environment variable\n\n"
 echo "WEBPAGE_URL => $WEBPAGE_URL"
@@ -12,14 +13,17 @@ sleep 10
 echo "Creating virtual screen ($DISPLAY)"
 Xvfb $DISPLAY -screen 0 ${RESOLUTION}x24 &
 
+echo "Hidding mouse cursor"
+sleep 1
+unclutter -display $DISPLAY -idle 0 &
+
 echo "Waiting for virtual screen to be ready ($DISPLAY)"
 sleep 2 
 
-echo "Hiding mouse cursor"
-unclutter -display $DISPLAY -idle 0 &  
-
 echo "Starting audio service"
 pulseaudio --start
+pactl load-module module-null-sink sink_name=$PULSE_SINK sink_properties=device.description=Virtual_Sink
+pactl set-default-sink $PULSE_SINK
 
 echo "Starting chrome ($WEBPAGE_URL)"
 google-chrome \
@@ -44,28 +48,22 @@ google-chrome \
   --autoplay-policy=no-user-gesture-required \
   --hide-scrollbars \
   --window-position=0,0 \
-  --start-fullscreen \
   --window-size=$(echo $RESOLUTION | sed 's/x/,/') \
   $([ "$SHOW_FPS_COUNTER" == "1" ] && echo "--ui-show-fps-counter") \
   --kiosk $WEBPAGE_URL &
 
 echo "Starting stream ($RTMP_URL)"
-# Stream from remote video file to check A/V Drift
-# ffmpeg \
-#   -loglevel $FFMPEG_LOGLEVEL \
-#   -re -i $WEBPAGE_URL \
-#   -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k -g 60 -r 30 \
-#   -pix_fmt yuv420p \
-#   -c:a aac -b:a 128k -ar 44100 \
-#   -f flv $RTMP_URL
 
-# Stream from x11 to check A/V Drift
-ffmpeg \
-  -loglevel $FFMPEG_LOGLEVEL \
-  -use_wallclock_as_timestamps 1 \
-  -thread_queue_size 1024 -f pulse -ac 2 -ar 48000 -i default \
-  -thread_queue_size 1024 -f x11grab -r 30 -s $RESOLUTION -i "$DISPLAY.0" \
-  -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k -g 60 -r 30 \
-  -pix_fmt yuv420p \
-  -c:a aac -b:a 128k -ar 48000 \
-  -f flv $RTMP_URL
+WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
+HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
+
+gst-launch-1.0 -v \
+  ximagesrc display-name=$DISPLAY use-damage=0 ! \
+    video/x-raw,framerate=30/1,width=$WIDTH,height=$HEIGHT ! \
+    queue ! videoconvert ! \
+    x264enc bitrate=3000 speed-preset=veryfast tune=fastdecode key-int-max=60 ! \
+    queue ! mux. \
+  pulsesrc device=$PULSE_SINK.monitor ! \
+    queue ! audioconvert ! voaacenc bitrate=128000 ! \
+    queue ! mux. \
+  flvmux streamable=true name=mux ! rtmpsink location=$RTMP_URL
