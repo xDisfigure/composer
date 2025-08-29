@@ -1,0 +1,17 @@
+services:
+  rtmp-server:
+    image: tiangolo/nginx-rtmp
+    ports:
+      - "1935:1935"
+    restart: unless-stopped
+
+  composer:
+    build: .
+    platform: linux/amd64
+    env_file:
+      - .env
+    environment: 
+      - RTMP_URL=rtmp://rtmp-server:1935/live/stream
+    depends_on:
+      - rtmp-server
+    restart: "no"
