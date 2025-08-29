@@ -4,25 +4,10 @@
 chmod +x composer
 ```
 
-### Build docker image
-
 ```sh
-./composer --build
-```
-
-### Kill & remove docker containers
-
-```sh
-./composer --clean
-```
-
-### Run docker
-
-```sh
-# Implies --clean and --build options
-./composer --run
+docker compose up
 ```
 
 ### RTMP stream in VLC
 
-Open VLC -> Media → Open Network Stream -> paste the RTMP url
+Open VLC -> Media → Open Network Stream -> rtmp://localhost/live/stream

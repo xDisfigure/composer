@@ -1,15 +1,6 @@
 export DISPLAY=:99
 PULSE_SINK=virtual_sink
 
-echo -e "Environment variable\n\n"
-echo "WEBPAGE_URL => $WEBPAGE_URL"
-echo "RTMP_URL => $RTMP_URL"
-echo "RESOLUTION => $RESOLUTION"
-echo "FFMPEG_LOGLEVEL => $FFMPEG_LOGLEVEL"
-echo "SHOW_FPS_COUNTER => ${SHOW_FPS_COUNTER:-0}"
-echo -e "\n\nIf one of the environment variable is wrong press Ctrl+C" 
-sleep 10
-
 echo "Creating virtual screen ($DISPLAY)"
 Xvfb $DISPLAY -screen 0 ${RESOLUTION}x24 &
 
@@ -22,11 +13,12 @@ sleep 2
 
 echo "Starting audio service"
 pulseaudio --start
-pactl load-module module-null-sink sink_name=$PULSE_SINK sink_properties=device.description=Virtual_Sink
+pactl load-module module-null-sink sink_name=$PULSE_SINK sink_properties=device.description=$PULSE_SINK
 pactl set-default-sink $PULSE_SINK
 
 echo "Starting chrome ($WEBPAGE_URL)"
 google-chrome \
+  --disable-cloud-import --disable-component-update --disable-sync \
   --disable-gpu \
   --disable-software-rasterizer \
   --disable-accelerated-video-decode \
